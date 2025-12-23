@@ -1,2 +1,4 @@
 # speedtest
-A simple project to perform speedtest via html/javascript
+A simple project to perform speedtest via html/javascript.
+
+Start the web server (docker compose up) and load the page [server]/speedtest/speedtest.html
