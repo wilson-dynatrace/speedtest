@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML5 Network Speed Test</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        table { border-collapse: collapse; width: 300px; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        button { padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        button:disabled { background: #ccc; }
+    </style>
+</head>
+<body>
+
+    <h2>Network Speed Test</h2>
+    <button id="start-test" onclick="runSpeedTest()">Run Test</button>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Metric</th>
+                <th>Result</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Latency (Ping)</td>
+                <td><span id="latency-val">-</span> ms</td>
+            </tr>
+            <tr>
+                <td>Download Speed</td>
+                <td><span id="download-val">-</span> Mbps</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <script>
+        // Configuration: Use a reliable image URL or file from your server
+        const testImage = "https://upload.wikimedia.org/wikipedia/commons/3/3a/A_very_large_image_of_a_cloud.jpg" + "?n=" + Math.random();
+        const downloadSizeBits = 5000000 * 8; // Example size in bits (adjust based on actual file)
+
+        async function runSpeedTest() {
+            const btn = document.getElementById('start-test');
+            const latencyDom = document.getElementById('latency-val');
+            const downloadDom = document.getElementById('download-val');
+
+            btn.disabled = true;
+            latencyDom.innerText = "Testing...";
+            downloadDom.innerText = "Testing...";
+
+            try {
+                // 1. Test Latency
+                const startTime = Date.now();
+                await fetch(testImage, { mode: 'no-cors' });
+                const endTime = Date.now();
+                const latency = endTime - startTime;
+                latencyDom.innerText = latency;
+
+                // 2. Test Download Speed
+                const dlStart = Date.now();
+                const response = await fetch(testImage, { mode: 'no-cors' });
+                const blob = await response.blob();
+                const dlEnd = Date.now();
+                
+                const durationSeconds = (dlEnd - dlStart) / 1000;
+                const sizeInBits = blob.size * 8;
+                const speedMbps = (sizeInBits / durationSeconds / (1024 * 1024)).toFixed(2);
+
+                downloadDom.innerText = speedMbps;
+
+            } catch (error) {
+                console.error("Test failed:", error);
+                alert("Speed test failed. Ensure you have an active connection.");
+            } finally {
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
