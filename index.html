@@ -143,8 +143,10 @@
             status.innerText = "Finished";
             
             // 4. Referencing the DOM objects for the result metrics: ${downloadDom.innerText}, ${pingDom.innerText} and ${jitterDom.innerText}
-            alert(`Result: ${downloadDom.innerText}, ${pingDom.innerText} and ${jitterDom.innerText}`);
+            // alert(`Result: ${downloadDom.innerText}, ${pingDom.innerText} and ${jitterDom.innerText}`);
             // sendMetric("custom.speedtest.download.time", `${downloadDom.innerText}`);
+            // sendMetric("custom.speedtest.ping.time", `${pingDom.innerText}`);
+            // sendMetric("custom.speedtest.jitter.time", `${jitterDom.innerText}`);
             
         } catch (error) {
             console.error(error);
