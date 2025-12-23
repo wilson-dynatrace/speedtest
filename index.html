@@ -71,7 +71,7 @@
         });
         if (!response.ok) {
             console.error("Failed to send metric:", response.statusText);
-            status.innerText = "Failed to send metric: " + response.statusText;            
+            status.innerText = status.innerText + "; Failed to send metric: " + response.statusText;            
         }
     }
     
