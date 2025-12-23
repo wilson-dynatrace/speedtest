@@ -55,7 +55,7 @@
     // Dynatrace specific metrics ingest API
     // sendMetric("custom.page.load.time", performance.now());
     async function sendMetric(metricName, value) {
-        const response = await fetch("https://<your-environment-id>.live.dynatrace.com/api/v2/metrics/ingest", {
+        const response = await fetch("https://eou37502.live.dynatrace.com/api/v2/metrics/ingest", {
             method: "POST",
             headers: {
                 "Authorization": "Api-Token YOUR_API_TOKEN",
