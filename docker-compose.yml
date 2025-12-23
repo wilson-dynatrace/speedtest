@@ -1,7 +1,7 @@
 services:
   tomcat:
     image: tomcat:latest
-    volume: ./:/usr/local/tomcat/webapps/speedtest
+    volumes: ./:/usr/local/tomcat/webapps/speedtest
     ports:
       - 8000:8080
     command: /bin/bash -c "mv /usr/local/tomcat/webapps.dist/* /usr/local/tomcat/webapps/ && rm -r /usr/local/tomcat/webapps.dist && catalina.sh run"
