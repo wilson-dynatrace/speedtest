@@ -60,14 +60,9 @@
             headers: {
                 "Accept": "application/json; charset=utf-8",
                 "Authorization": "Api-Token YOUR_API_TOKEN",
-                "Content-Type": "application/json"
+                "Content-Type": "text/plain"
             },
-            body: JSON.stringify([{
-                metric: metricName,
-                value: value,
-                timestamp: Date.now(),
-                dimensions: { page: window.location.pathname }
-            }])
+            body: body: metricName+" "+value
         });
         if (!response.ok) {
             console.error("Failed to send metric:", response.statusText);
