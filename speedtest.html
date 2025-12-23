@@ -1,176 +1,215 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Standalone Speed Test</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdn.jsdelivr.net/npm/justgage@1.5.2/justgage.min.js"></script>
-<style>
-  :root{--bg:#121212;--surface:#1e1e1e;--primary:#00b0ff;--text:#fff;--text2:#aaa}
-  @media (prefers-color-scheme: light){
-    :root{--bg:#f5f5f5;--surface:#fff;--primary:#007acc;--text:#222;--text2:#666}
-  }
-  body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px;box-sizing:border-box}
-  .box{max-width:460px;width:100%;background:var(--surface);border-radius:16px;padding:30px;box-shadow:0 10px 40px rgba(0,0,0,.4);text-align:center}
-  h1{font-size:2.4em;margin:0 0 8px;color:var(--primary)}
-  .gauge{margin:40px 0;position:relative}
-  #current{font-size:3em;font-weight:bold;margin:10px 0}
-  button{padding:14px 30px;margin:10px;font-size:1.1em;border:none;border-radius:8px;background:var(--primary);color:#fff;cursor:pointer}
-  button:disabled{opacity:0.5;cursor:not-allowed}
-  button.stop{background:#ff4444}
-  .status{margin:15px 0;color:var(--text2)}
-  .results{margin-top:30px;font-size:1.1em}
-  .row{display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid rgba(255,255,255,.1)}
-  .label{font-weight:600}
-  .value{color:var(--primary);font-weight:bold}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Performance Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f0f0f0; text-align: center; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        button { padding: 12px 20px; margin: 10px; font-size: 16px; cursor: pointer; border: none; border-radius: 5px; background: #007bff; color: white; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #results { margin-top: 30px; font-size: 24px; }
+        .gauge { width: 200px; height: 200px; margin: 20px auto; }
+        .log { margin-top: 20px; white-space: pre-line; text-align: left; background: #f8f8f8; padding: 10px; border-radius: 5px; }
+    </style>
 </head>
 <body>
-<div class="box">
-  <h1>Speed Test</h1>
-  <p>No server • Works offline</p>
+    <div class="container">
+        <h1>Network Performance Test</h1>
+        <p>Based on OpenSpeedTest™ + DNS Measurement</p>
+        
+        <button id="dnsBtn" onclick="measureDNS()">Test DNS Lookup</button>
+        <button id="startBtn" onclick="startTest()">Start Full Speed Test</button>
+        
+        <div id="results"></div>
+        <div class="gauge"><svg id="gauge" viewBox="0 0 100 100"></svg></div>
+        <div class="log" id="log"></div>
+    </div>
 
-  <div class="gauge"><canvas id="g"></canvas></div>
-  <div id="current">0</div>
-  <div style="color:var(--text2)">Mbps <span id="phase">Ready</span></div>
+    <script>
+        // Configuration (same as OpenSpeedTest style)
+        const servers = [{ ServerName: "Local Server", Download: "downloading/garbage.php?ckSize=100", Upload: "upload/", ping: "" }];
+        let currentTest = null;
+        let results = { dns: '-', ping: '-', jitter: '-', download: '-', upload: '-' };
 
-  <button id="btn">GO</button>
-  <div class="status" id="status">Click GO to start</div>
+        function log(msg) {
+            document.getElementById('log').innerHTML += msg + '<br>';
+        }
 
-  <div class="results" id="results" style="display:none">
-    <div class="row"><span class="label">Download</span><span class="value" id="dl">—</span></div>
-    <div class="row"><span class="label">Upload</span><span class="value" id="ul">—</span></div>
-    <div class="row"><span class="label">Ping</span><span class="value" id="ping">—</span></div>
-  </div>
-</div>
+        function updateResults() {
+            document.getElementById('results').innerHTML = `
+                DNS Lookup: ${results.dns}<br>
+                Ping: ${results.ping}<br>
+                Jitter: ${results.jitter}<br>
+                Download: ${results.download}<br>
+                Upload: ${results.upload}
+            `;
+        }
 
-<script>
-class StandaloneSpeedTest {
-  constructor() { this.abort = false; this.gage = null; }
-  delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+        // === New: DNS Lookup Measurement ===
+        async function measureDNS() {
+            const btn = document.getElementById('dnsBtn');
+            btn.disabled = true;
+            log('Measuring DNS lookup time...');
+            
+            // Use a unique subdomain or random query on a known domain to force DNS (avoid cache)
+            const domain = 'dns.google';
+            const url = `https://${Math.random().toString(36).substring(7)}.${domain}/favicon.ico?t=${Date.now()}`;
+            
+            const img = new Image();
+            const start = performance.now();
+            
+            img.onload = img.onerror = () => {
+                const entries = performance.getEntriesByName(url);
+                if (entries.length > 0) {
+                    const timing = entries[0];
+                    const dnsTime = timing.domainLookupEnd - timing.domainLookupStart;
+                    results.dns = dnsTime > 0 ? `${dnsTime.toFixed(1)} ms` : 'Cached (0 ms)';
+                    log(`DNS Lookup Time: ${results.dns}`);
+                } else {
+                    results.dns = 'Failed';
+                    log('DNS measurement failed');
+                }
+                updateResults();
+                btn.disabled = false;
+            };
+            
+            img.src = url;
+        }
 
-  // FIXED PING – works instantly in all 2025 browsers
-  async measurePing(samples = 6) {
-    const urls = [
-      "https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/4.1.5/flags/1x1/un.svg?t=",
-      "https://1.1.1.1/cdn-cgi/trace?t=",
-      "https://httpbin.org/uuid?t="
-    ];
-    const times = [];
-    for (let i = 0; i < samples && !this.abort; i++) {
-      const t0 = performance.now();
-      const url = urls[i % urls.length] + Date.now();
-      try {
-        await new Promise((res, rej) => {
-          const img = new Image();
-          img.onload = img.onerror = res;
-          img.src = url;
-          setTimeout(() => rej(), 3000);
-        });
-        times.push(performance.now() - t0);
-      } catch(e) { times.push(9999); }
-      await this.delay(80); // prevent throttling
-    }
-    if (this.abort) return null;
-    const valid = times.filter(t => t < 5000).sort((a,b)=>a-b);
-    if (valid.length === 0) return {latency: "N/A", jitter: 0};
-    const median = valid[Math.floor(valid.length * 0.5)];
-    return {latency: median.toFixed(1), jitter: 0};
-  }
+        // === Core Speed Test (simplified from OpenSpeedTest logic) ===
+        function startTest() {
+            document.getElementById('startBtn').disabled = true;
+            log('Starting full test...');
+            results = { dns: results.dns, ping: '-', jitter: '-', download: '-', upload: '-' };
+            updateResults();
 
-  async testDownload(sec = 10) {
-    const chunk = 5 * 1024 * 1024;
-    const blob = new Blob([crypto.getRandomValues(new Uint8Array(chunk))]);
-    const url = URL.createObjectURL(blob);
-    let total = 0;
-    const start = performance.now();
-    while ((performance.now() - start) < sec * 1000 && !this.abort) {
-      const data = await (await fetch(url)).arrayBuffer();
-      total += data.byteLength;
-    }
-    URL.revokeObjectURL(url);
-    if (this.abort) return null;
-    const mbps = (total * 8 / ((performance.now() - start)/1000) / 1e6).toFixed(1);
-    return {speed: mbps};
-  }
+            testPing(() => {
+                testDownload(() => {
+                    testUpload(() => {
+                        log('Test completed!');
+                        document.getElementById('startBtn').disabled = false;
+                    });
+                });
+            });
+        }
 
-  async testUpload(sec = 10) {
-    const chunk = 5 * 1024 * 1024;
-    const data = crypto.getRandomValues(new Uint8Array(chunk));
-    const start = performance.now();
-    let total = 0;
-    while ((performance.now() - start) < sec * 1000 && !this.abort) {
-      const form = new FormData();
-      form.append("f", new Blob([data]));
-      await fetch("data:,", {method:"POST", body: form});
-      total += data.byteLength;
-    }
-    if (this.abort) return null;
-    const mbps = (total * 8 / ((performance.now() - start)/1000) / 1e6).toFixed(1);
-    return {speed: mbps};
-  }
+        function testPing(callback) {
+            log('Testing Ping & Jitter...');
+            let pings = [];
+            let count = 20; // samples
 
-  async run() {
-    this.abort = false;
-    const status = document.getElementById("status");
-    const btn = document.getElementById("btn");
-    document.getElementById("results").style.display = "none";
-    btn.textContent = "STOP"; btn.classList.add("stop");
+            function pingOnce() {
+                const start = performance.now();
+                const xhr = new XMLHttpRequest();
+                xhr.open('HEAD', 'downloading/?' + Date.now(), true);
+                xhr.timeout = 5000;
+                xhr.onload = xhr.onerror = xhr.ontimeout = () => {
+                    if (xhr.status >= 200 && xhr.status < 400) {
+                        pings.push(performance.now() - start);
+                    }
+                    if (--count > 0) pingOnce();
+                    else {
+                        pings.sort((a,b)=>a-b);
+                        const avg = pings.reduce((a,b)=>a+b)/pings.length;
+                        const jitter = pings.reduce((a,b,i,arr)=>a + Math.abs(b - arr[i-1]),0)/(pings.length-1);
+                        results.ping = avg.toFixed(1) + ' ms';
+                        results.jitter = jitter.toFixed(1) + ' ms';
+                        log(`Ping: ${results.ping} | Jitter: ${results.jitter}`);
+                        updateResults();
+                        callback();
+                    }
+                };
+                xhr.send();
+            }
+            pingOnce();
+        }
 
-    status.textContent = "Ping…";
-    updateGauge(0, "Ping");
-    const ping = await this.measurePing();
-    if (!ping) return this.finish();
-    document.getElementById("ping").textContent = ping.latency + " ms";
-    updateGauge(20, "Ping");
+        function testDownload(callback) {
+            log('Testing Download...');
+            let totalBytes = 0;
+            let startTime = performance.now();
+            let threads = 6;
+            let active = threads;
 
-    status.textContent = "Download… (10s)";
-    updateGauge(0, "Download");
-    const dl = await this.testDownload(10);
-    if (!dl) return this.finish();
-    document.getElementById("dl").textContent = dl.speed + " Mbps";
-    updateGauge(dl.speed, "Download");
+            function thread() {
+                const xhr = new XMLHttpRequest();
+                xhr.responseType = 'blob';
+                xhr.open('GET', `downloading/garbage.php?ckSize=50&${Date.now()}`, true); // Adjust size as needed
+                xhr.onprogress = e => {
+                    if (e.lengthComputable) totalBytes += e.loaded;
+                };
+                xhr.onload = () => {
+                    if (--active === 0) finish();
+                };
+                xhr.onerror = () => { if (--active === 0) finish(); };
+                xhr.send();
+            }
 
-    status.textContent = "Upload… (10s)";
-    updateGauge(0, "Upload");
-    const ul = await this.testUpload(10);
-    if (!ul) return this.finish();
-    document.getElementById("ul").textContent = ul.speed + " Mbps";
-    updateGauge(ul.speed, "Done");
+            for (let i = 0; i < threads; i++) thread();
 
-    status.textContent = "Complete!";
-    document.getElementById("results").style.display = "block";
-    this.finish();
-  }
+            const interval = setInterval(() => {
+                const elapsed = (performance.now() - startTime) / 1000;
+                const speed = (totalBytes * 8 / elapsed / 1000000).toFixed(1);
+                results.download = speed + ' Mbps';
+                updateResults();
+            }, 500);
 
-  stop() { this.abort = true; }
-  finish() {
-    document.getElementById("btn").textContent = "GO";
-    document.getElementById("btn").classList.remove("stop");
-  }
-}
+            function finish() {
+                clearInterval(interval);
+                const elapsed = (performance.now() - startTime) / 1000;
+                const speed = (totalBytes * 8 / elapsed / 1000000).toFixed(1);
+                results.download = speed + ' Mbps';
+                log(`Download: ${results.download}`);
+                updateResults();
+                callback();
+            }
+        }
 
-const test = new StandaloneSpeedTest();
+        function testUpload(callback) {
+            log('Testing Upload...');
+            const dataSize = 10 * 1024 * 1024; // 10MB
+            const blob = new Blob([new Uint8Array(dataSize)]);
+            let totalSent = 0;
+            let startTime = performance.now();
+            let threads = 4;
+            let active = threads;
 
-function updateGauge(val, phase) {
-  if (!test.gage) {
-    test.gage = new JustGage({
-      id: "g", value: 0, min: 0, max: 1000, decimals: 1,
-      pointer: true, label: "Mbps",
-      levelColors: ["#ff4444","#ffaa00","#00ff9d"]
-    });
-  }
-  document.getElementById("current").textContent = val > 1000 ? (val/1000).toFixed(2) : val.toFixed(1);
-  document.getElementById("phase").textContent = phase;
-  test.gage.refresh(Math.min(val, 1000));
-}
+            function thread() {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', 'upload/', true);
+                xhr.upload.onprogress = e => {
+                    if (e.lengthComputable) totalSent += e.loaded;
+                };
+                xhr.onload = xhr.onerror = () => {
+                    if (--active === 0) finish();
+                };
+                xhr.send(blob);
+            }
 
-document.getElementById("btn").onclick = () => {
-  if (document.getElementById("btn").textContent === "GO") test.run();
-  else { test.stop(); test.finish(); document.getElementById("status").textContent = "Stopped"; }
-};
+            for (let i = 0; i < threads; i++) thread();
 
-updateGauge(0);
-</script>
+            const interval = setInterval(() => {
+                const elapsed = (performance.now() - startTime) / 1000;
+                if (elapsed > 0) {
+                    const speed = (totalSent * 8 / elapsed / 1000000).toFixed(1);
+                    results.upload = speed + ' Mbps';
+                    updateResults();
+                }
+            }, 500);
+
+            function finish() {
+                clearInterval(interval);
+                const elapsed = (performance.now() - startTime) / 1000;
+                const speed = (totalSent * 8 / elapsed / 1000000).toFixed(1);
+                results.upload = speed + ' Mbps';
+                log(`Upload: ${results.upload}`);
+                updateResults();
+                callback();
+            }
+        }
+    </script>
 </body>
 </html>
