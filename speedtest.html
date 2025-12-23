@@ -118,6 +118,17 @@
             downloadDom.innerText = speedMbps;
             status.innerText = "Test Complete";
 
+            // 3. SHOW POPUP
+            status.innerText = "Finished";
+            
+            // Referencing the DOM objects for the popup content
+            dialogContent.innerHTML = `
+                <strong>Download:</strong> ${downloadDom.innerText} Mbps<br>
+                <strong>Ping:</strong> ${pingDom.innerText} ms<br>
+                <strong>Jitter:</strong> ${jitterDom.innerText} ms
+            `;
+            dialog.showModal();
+            
         } catch (error) {
             console.error(error);
             status.innerText = "Error: Check CORS or Connection";
